@@ -78,8 +78,8 @@ void lcd_clear(void);
 void lcd_home(void);
 void lcd_putc(char c);
 void lcd_puts(const char *s);
-void lcd_gotoxy(uint8_t x, uint8_t y);
-void lcd_putnum(int num);
+void lcd_goto(uint8_t x, uint8_t y);
+void lcd_putnum(int32_t num);
 
 
 // -------------------------------------------------------------------------
@@ -131,7 +131,7 @@ int main(void) {
     hx711_init();
     initlcd();
 
-    lcd_puts("Insert COin!");
+    lcd_puts("Insert Coin!");
 
     // Compute average tare
     average_tare = 0;
@@ -362,7 +362,7 @@ int main(void) {
 
         if (current_count_copy != last_printed_count) {
             USART_PrintString("Counter: ");
-            lcd_gotoxy(0,1);
+            lcd_goto(0,1);
             lcd_puts("Credit: ");
             
             USART_PrintNumber(current_count_copy);

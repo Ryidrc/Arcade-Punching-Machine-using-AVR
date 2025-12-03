@@ -31,7 +31,7 @@ void Hardware_Init(void) {
     // --- Interrupt Logic ---
     // ISC01 = 1, ISC00 = 0 -> INT0 Falling Edge (Sensor)
     // ISC11 = 1, ISC10 = 0 -> INT1 Falling Edge (Button)
-    EICRA |= (1 << ISC01) | (1 << ISC11); 
+    EICRA |= (1 << ISC01) | (1 << ISC11);
     
     // Enable both Interrupts
     EIMSK |= (1 << INT0) | (1 << INT1);
@@ -53,6 +53,10 @@ long hx711_read(void) {
     // Wait until HX711 is ready (DOUT goes LOW)
     while (PIND & (1 << HX_DOUT));
 
+    // 2. Critical Section: Disable interrupts only for the bit-banging
+    uint8_t oldSREG = SREG;
+    cli();
+
     // Read 24 bits
     for (uint8_t i = 0; i < 24; i++) {
         PORTD |= (1 << HX_SCK);   // SCK HIGH
@@ -68,12 +72,14 @@ long hx711_read(void) {
         }
     }
 
-  for (uint8_t i = 0; i < 2; i++) {
-        PORTD |= (1 << HX_SCK);
-        _delay_us(1);
-        PORTD &= ~(1 << HX_SCK);
-        _delay_us(1);
+    for (uint8_t i = 0; i < 2; i++) {
+            PORTD |= (1 << HX_SCK);
+            _delay_us(1);
+            PORTD &= ~(1 << HX_SCK);
+            _delay_us(1);
     }
+
+    SREG = oldSREG; // Restore previous interrupt state
 
     // Convert 24-bit signed value to 32-bit signed
     if (value & 0x800000) {

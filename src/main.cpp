@@ -48,6 +48,7 @@ long average_tare = 0;
 long hit_value = 0;
 long score = 0;           // raw peak value
 int display_score = 0;    // 0..100 percent shown on display
+bool waiting_for_release = false;
 
 long stored_score = 0;
 bool has_score = false;
@@ -193,9 +194,7 @@ int main(void) {
             }
 
             // 2) Read sensor (polling)
-            cli();
             long raw = hx711_read();
-            sei();
             USART_PrintNumber(raw);
             USART_PrintString("\n");
             _delay_ms(1);
@@ -277,39 +276,84 @@ int main(void) {
         } // end if gameActive
 
         // HANDLE SENSOR EVENT (INT0) POST-PROCESS
+        static unsigned long sensorBlindTimer = 0;
+
         if (g_sensor_event == 1) {
-            // sensor "blind" time
-            _delay_ms(1000);
-            EIFR |= (1 << INTF0);
-            g_sensor_event = 0;
-            EIMSK |= (1 << INT0);
-        }
-
-        // HANDLE BUTTON EVENT (INT1)
-        if (g_button_event == 1) {
-            _delay_ms(100); // debounce
-            cli();
-            if (sensor_counter == 0) {
-                USART_PrintString("Insert Coin!\r\n");
-            } else {
-                sensor_counter--;
-                USART_PrintString("It worked!\r\n");
-
-                // start the game
-                gameActive = true;
-                gameTimer = TimerForGame; // in seconds
-                msCounter = 0;
-                updateScreen = true;
-
-                led_module.clearScreen(true);
-                led_module.selectFont(Arial_Black_16);
+            // Start the timer if it hasn't started
+            if (sensorBlindTimer == 0) {
+                sensorBlindTimer = system_ticks;
             }
-            sei();
 
-            EIFR |= (1 << INTF1);
-            g_button_event = 0;
-            EIMSK |= (1 << INT1);
+            // Check if 1000ms has passed
+            if (system_ticks - sensorBlindTimer > 1000) {
+                EIFR |= (1 << INTF0); // Clear interrupt flag
+                EIMSK |= (1 << INT0); // Re-enable Interrupt
+                g_sensor_event = 0;   // Reset event flag
+                sensorBlindTimer = 0; // Reset timer
+            }
         }
+
+        // PART 1: Handle the Press (Triggered by Interrupt)
+        if (g_button_event == 1) {
+            g_button_event = 0; // Reset flag immediately
+            
+            // Check if button is truly pressed (LOW) to filter noise
+            if ( (PIND & (1 << PD3)) == 0 ) {
+                
+                // --- YOUR GAME START LOGIC HERE ---
+                cli();
+                if (sensor_counter == 0) {
+                    USART_PrintString("Insert Coin!\r\n");
+                } else {
+                    sensor_counter--;
+                    USART_PrintString("Game Started!\r\n");
+                    
+                    gameActive = true;
+                    gameTimer = TimerForGame;
+                    msCounter = 0;
+                    updateScreen = true;
+                    
+                    led_module.clearScreen(true);
+                    led_module.selectFont(Arial_Black_16);
+                }
+                sei();
+                // ----------------------------------
+
+                // CRITICAL CHANGE: Do NOT re-enable interrupt yet!
+                // Instead, tell the system to wait for the button to be released.
+                waiting_for_release = true;
+            } else {
+                // If it was just noise (pin is HIGH), re-enable immediately
+                EIFR |= (1 << INTF1);
+                EIMSK |= (1 << INT1);
+            }
+        }
+
+        // PART 2: Handle the Release (Polling)
+        if (waiting_for_release) {
+            static unsigned long releaseTimer = 0;
+            
+            // Check if the button is HIGH (Released)
+            if (PIND & (1 << PD3)) { 
+                // Use a timer to ensure it is STABLE high (debounce the release)
+                if (releaseTimer == 0) {
+                    releaseTimer = system_ticks; // Start timer
+                }
+                
+                // If it stays HIGH for 50ms, we confirm it's released
+                if (system_ticks - releaseTimer > 50) {
+                    waiting_for_release = false; // Stop waiting
+                    releaseTimer = 0;            // Reset timer
+                    
+                    // NOW it is safe to re-enable the interrupt for the next press
+                    EIFR |= (1 << INTF1); // Clear any flags generated while holding
+                    EIMSK |= (1 << INT1); // Re-enable INT1
+                }
+            } else {
+                // If button goes LOW again (bouncing or still held), reset timer
+                releaseTimer = 0;
+            }
+        }   
 
         // TASK 3: Print coin counter changes
         cli();
@@ -323,7 +367,6 @@ int main(void) {
             
             USART_PrintNumber(current_count_copy);
             lcd_putnum(current_count_copy);
-          
 
             USART_PrintString("\r\n");
             last_printed_count = current_count_copy;

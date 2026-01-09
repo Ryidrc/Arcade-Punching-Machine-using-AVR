@@ -142,13 +142,19 @@ int main(void) {
     }
     average_tare = average_tare / 160;
     _delay_ms(200);
-    hit_value = 10 * average_tare;
+    hit_value = average_tare - 400000;
+    hit_value = labs(hit_value);
 
     USART_PrintString("--- System Ready: Sensor(PD2) & Button(PD3) ---\r\n");
 
+    USART_PrintNumber(average_tare);
+    USART_PrintString("\r\n");
+    USART_PrintNumber(hit_value);
+    USART_PrintString("\r\n");
+
     sei(); // enable global interrupts
 
-    // Main loop
+    // Main  
     while (1) {
         // If no game active, show idle animation
         if (!gameActive) {
@@ -195,6 +201,7 @@ int main(void) {
 
             // 2) Read sensor (polling)
             long raw = hx711_read();
+            raw = labs(raw);
             USART_PrintNumber(raw);
             USART_PrintString("\n");
             _delay_ms(1);
@@ -209,11 +216,12 @@ int main(void) {
             if (counting) {
                 if (raw > score) score = raw;
 
-                // clamp max to 1,000,000 (as in original)
-                if (score >= 1000000) score = 1000000;
+                // clamp max to 8,000,000 (as in original)
+                if (score >= 8000000) score = 8000000;
 
                 // compute 0..100 percentage properly using integer math:
-                display_score = (int)((score * 100L) / 1000000L); // 0..100
+                display_score = (int)(((score * 100L) / (800000 - 1))); // 0..999
+
             }
 
             // end of hit: raw dropped below threshold -> finalize
@@ -226,6 +234,12 @@ int main(void) {
                 // show score in UART
                 USART_PrintString("Score: ");
                 USART_PrintNumber(display_score);
+                USART_PrintString("\n");
+                USART_PrintString("\nRaw Score: ");
+                USART_PrintNumber(score);
+                USART_PrintString("\n");
+                USART_PrintString("\nHit Value: ");
+                USART_PrintNumber(hit_value);
                 USART_PrintString("\n");
 
                 // Visual score-up animation on DMD

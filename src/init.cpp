@@ -10,8 +10,8 @@
 #include "init.h"
 
 // Loadcell
-#define HX_DOUT PD4   // Digital input
-#define HX_SCK  PD5   // Digital output
+#define HX_DOUT PD5   // Digital input
+#define HX_SCK  PD4   // Digital output
 #define TIMER1_COMPARE_VALUE 499 
 
 
@@ -49,43 +49,35 @@ void hx711_init(void) {
 
 long hx711_read(void) {
     long value = 0;
+    while (PIND & (1 << HX_DOUT)); // Wait for ready
 
-    // Wait until HX711 is ready (DOUT goes LOW)
-    while (PIND & (1 << HX_DOUT));
-
-    // 2. Critical Section: Disable interrupts only for the bit-banging
     uint8_t oldSREG = SREG;
-    cli();
+    cli(); // Disable interrupts during the 24-bit read
 
-    // Read 24 bits
     for (uint8_t i = 0; i < 24; i++) {
-        PORTD |= (1 << HX_SCK);   // SCK HIGH
+        PORTD |= (1 << HX_SCK);
         _delay_us(1);
-
         value = value << 1;
-
-        PORTD &= ~(1 << HX_SCK); // SCK LOW
+        PORTD &= ~(1 << HX_SCK);
         _delay_us(1);
-
         if (PIND & (1 << HX_DOUT)) {
             value++;
         }
     }
 
-    for (uint8_t i = 0; i < 2; i++) {
-            PORTD |= (1 << HX_SCK);
-            _delay_us(1);
-            PORTD &= ~(1 << HX_SCK);
-            _delay_us(1);
+    // 3 pulses for Channel A (Gain 64)
+    // Use 1 pulse for Channel A (Gain 128)
+    // Use 2 pulses for Channel B (Gain 32)
+    for (uint8_t i = 0; i < 3; i++) {
+        PORTD |= (1 << HX_SCK);
+        _delay_us(1);
+        PORTD &= ~(1 << HX_SCK);
+        _delay_us(1);
     }
 
-    SREG = oldSREG; // Restore previous interrupt state
+    SREG = oldSREG; // Re-enable interrupts
 
-    // Convert 24-bit signed value to 32-bit signed
-    if (value & 0x800000) {
-        value |= 0xFF000000;   // sign extend
-    }
-
+    if (value & 0x800000) value |= 0xFF000000; // Sign extend
     return value;
 }
 

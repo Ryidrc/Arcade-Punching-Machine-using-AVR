@@ -1,8 +1,3 @@
-/*--------------------------------------------------------------------------------------
- DMD_AVR.h - Pure AVR Bare Metal Library for P10 LED Matrix
- Ported from Freetronics DMD Library
- Target: ATmega328P (Arduino Uno/Nano)
---------------------------------------------------------------------------------------*/
 #ifndef DMD_AVR_H_
 #define DMD_AVR_H_
 
@@ -12,12 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ======================================================================
-// HARDWARE PIN DEFINITIONS (BARE METAL MAPPING)
-// Sesuaikan pin ini dengan skematik Anda (Default: Arduino Uno Layout)
-// ======================================================================
-
-// --- PORT B DEFINITIONS (PB0 - PB5) ---
 #define DMD_PORT_B_REG  PORTB
 #define DMD_DDR_B_REG   DDRB
 #define PIN_DMD_SCLK    PB0  // Arduino D8 (Latch)
@@ -26,15 +15,10 @@
 #define PIN_SPI_MOSI    PB3  // Arduino D11 (Data)
 #define PIN_SPI_SCK     PB5  // Arduino D13 (Clock)
 
-// --- PORT D DEFINITIONS (PD6 - PD7) ---
 #define DMD_PORT_D_REG  PORTD
 #define DMD_DDR_D_REG   DDRD
 #define PIN_DMD_A       PD6  // Arduino D6
 #define PIN_DMD_B       PD7  // Arduino D7
-
-// ======================================================================
-// MACROS: FAST PORT MANIPULATION
-// ======================================================================
 
 // Output Enable Control
 #define OE_DMD_ROWS_OFF()   { DMD_PORT_B_REG &= ~(1 << PIN_DMD_nOE); }
@@ -96,9 +80,6 @@ static const uint8_t bPixelLookupTable[8] = {
 #define FONT_CHAR_COUNT         5
 #define FONT_WIDTH_TABLE        6
 
-// ======================================================================
-// CLASS DEFINITION
-// ======================================================================
 class DMD {
   public:
     DMD(uint8_t panelsWide, uint8_t panelsHigh);

@@ -1,9 +1,5 @@
-/*--------------------------------------------------------------------------------------
- DMD_AVR.cpp - Pure AVR Bare Metal Implementation
---------------------------------------------------------------------------------------*/
 #include "DMD.h"
 
-// --- CONSTRUCTOR ---
 DMD::DMD(uint8_t panelsWide, uint8_t panelsHigh)
 {
     DisplaysWide = panelsWide;
@@ -33,7 +29,6 @@ DMD::DMD(uint8_t panelsWide, uint8_t panelsHigh)
     bDMDByte = 0;
 }
 
-// --- PRIVATE SPI HELPERS ---
 void DMD::spi_init_bare() {
     // Enable SPI, Master, set clock rate fck/4
     // SPE: SPI Enable
@@ -48,7 +43,6 @@ inline void DMD::spi_transfer_bare(uint8_t data) {
     while (!(SPSR & (1 << SPIF))); // Wait for transmission complete
 }
 
-// --- WRITE PIXEL ---
 void DMD::writePixel(unsigned int bX, unsigned int bY, uint8_t bGraphicsMode, uint8_t bPixel)
 {
     unsigned int uiDMDRAMPointer;
@@ -94,7 +88,6 @@ void DMD::writePixel(unsigned int bX, unsigned int bY, uint8_t bGraphicsMode, ui
     }
 }
 
-// --- SCAN DISPLAY (DRIVER UTAMA) ---
 void DMD::scanDisplayBySPI()
 {
     // Cek Pin CS lain (Bare Metal check PINB Register)
@@ -128,7 +121,6 @@ void DMD::scanDisplayBySPI()
     OE_DMD_ROWS_ON();
 }
 
-// --- CLEAR SCREEN ---
 void DMD::clearScreen(uint8_t bNormal)
 {
     if (bNormal)
@@ -137,7 +129,6 @@ void DMD::clearScreen(uint8_t bNormal)
         memset(bDMDScreenRAM, 0x00, DMD_RAM_SIZE_BYTES * DisplaysTotal);
 }
 
-// --- STRING & FONT ---
 void DMD::selectFont(const uint8_t * font) {
     this->Font = font;
 }
@@ -232,7 +223,6 @@ int DMD::charWidth(const unsigned char letter) {
     return width;
 }
 
-// --- MARQUEE ---
 void DMD::drawMarquee(const char *bChars, uint8_t length, int left, int top) {
     marqueeWidth = 0;
     for (int i = 0; i < length; i++) {
@@ -273,7 +263,6 @@ bool DMD::stepMarquee(int amountX, int amountY) {
     return ret;
 }
 
-// --- SHAPES ---
 void DMD::drawLine(int x1, int y1, int x2, int y2, uint8_t bGraphicsMode) {
     int dy = y2 - y1;
     int dx = x2 - x1;

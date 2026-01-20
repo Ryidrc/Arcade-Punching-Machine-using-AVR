@@ -1,8 +1,3 @@
-/* =========================================================================
- * BARE METAL ARCADE SYSTEM (PURE AVR)
- * Target: ATmega328P (Arduino Uno)
- * ========================================================================= */
-
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>

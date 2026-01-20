@@ -3,8 +3,6 @@
 #include <stdint.h>
 #include "lcd.h"
 
-
-
 static void lcd_put_nibble(uint8_t nibble) {
     LCD_PORT &= ~DATA_MASK;
 
@@ -92,8 +90,11 @@ void lcd_putnum(int32_t num) {
     }
 }
 
-/* ---------------- initialization ---------------- */
-
+/* 
+===========================================================
+INITIALIZATION
+===========================================================
+*/ 
 void initlcd(void) {
     LCD_DDR |= RS_MASK | E_MASK | DATA_MASK;
 
